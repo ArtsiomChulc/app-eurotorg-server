@@ -1,36 +1,23 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { PassportStrategy } from "@nestjs/passport"
-import { ExtractJwt, Strategy } from "passport-jwt"
-import { ConfigService } from "@nestjs/config"
-import { PrismaService } from "../../../prisma/prisma.service"
-import { JwtPayload } from "../types/jwt-payload.type"
+import { Strategy } from "passport-local"
+import { AuthService } from "../auth.service"
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-	constructor(
-		private readonly configService: ConfigService,
-		private readonly prisma: PrismaService
-	) {
+	constructor(private readonly authService: AuthService) {
 		super({
-			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // <-- достаёт токен из заголовка Authorization
-			ignoreExpiration: false,
-			secretOrKey: configService.get<string>("JWT_ACCESS_SECRET") // <-- секрет для подписи токена
+			usernameField: "email"
 		})
 	}
 
-	// метод вызывается автоматически при каждом запросе с JWT
-	async validate(payload: JwtPayload) {
-		// payload — это объект, который мы записали при генерации токена (id, email и т.д.)
-
-		const user = await this.prisma.user.findUnique({
-			where: { id: payload.sub }
-		})
+	async validate(email: string, password: string) {
+		const user = await this.authService.validateUser(email, password)
 
 		if (!user) {
-			return null
+			throw new UnauthorizedException("Invalid credentials")
 		}
 
-		// возвращаем данные пользователя — они добавляются в req.user
-		return { id: user.id, email: user.email, name: user.name }
+		return user
 	}
 }

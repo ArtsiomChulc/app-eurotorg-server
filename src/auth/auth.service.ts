@@ -1,52 +1,78 @@
-import { Injectable, ConflictException, UnauthorizedException } from "@nestjs/common"
-import { hash, verify } from "argon2"
-import { User } from "@prisma/client"
-import { PrismaService } from "../../prisma/prisma.service"
-import { LoginDto } from "./dto/login.dto"
-import { RegisterDto } from "./dto/register.dto"
+import { Injectable } from "@nestjs/common"
+import { ConfigService } from "@nestjs/config"
 import { JwtService } from "@nestjs/jwt"
+import { User } from "@prisma/client"
+import { hash, verify } from "argon2"
+import { Response } from "express"
+import { PrismaService } from "../../prisma/prisma.service"
+import { UsersService } from "../users/users.service"
+import { RegisterDto } from "./dto/register.dto"
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private prisma: PrismaService,
-		private jwt: JwtService
+		private jwt: JwtService,
+		private configService: ConfigService,
+		private readonly userService: UsersService
 	) {}
 
-	async register(dto: RegisterDto) {
-		const existingUser = await this.prisma.user.findUnique({
-			where: { email: dto.email }
+	async register(
+		{ email, password, region, lastName, name }: RegisterDto,
+		res: Response
+	) {
+		const hashedPassword = await hash(password)
+		const createdUser = await this.userService.create({
+			email,
+			region,
+			lastName,
+			name,
+			hashedPassword
 		})
-		if (existingUser) throw new ConflictException("User already exists")
+		return this.buildResponse(createdUser, res)
+	}
 
-		const hashedPassword = await hash(dto.password)
-		const user = await this.prisma.user.create({
-			data: {
-				email: dto.email,
-				password: hashedPassword,
-				name: dto.name,
-				lastName: dto.lastName,
-				region: dto.region
+	async validateUser(email: string, password: string) {
+		const user = await this.userService.getOne({ email })
+		if (!user) return null
+
+		const isValidPassword = await verify(user.hashedPassword, password)
+		if (!isValidPassword) return null
+
+		return user
+	}
+
+	async generateTokens(userId: number) {
+		const accessToken = await this.jwt.signAsync(
+			{
+				userId
+			},
+			{
+				secret: this.configService.getOrThrow("JWT_ACCESS_SECRET"),
+				expiresIn: this.configService.getOrThrow("JWT_ACCESS_EXPIRES")
 			}
-		})
+		)
 
-		return this.buildResponse(user)
+		const refreshToken = await this.jwt.signAsync(
+			{
+				userId
+			},
+			{
+				secret: this.configService.getOrThrow("JWT_REFRESH_SECRET"),
+				expiresIn: this.configService.getOrThrow("JWT_REFRESH_EXPIRES")
+			}
+		)
+
+		return { accessToken, refreshToken }
 	}
 
-	async login({ email, password }: LoginDto) {
-		const user = await this.prisma.user.findUnique({ where: { email } })
-		if (!user) throw new UnauthorizedException("Invalid email or password")
+	private async buildResponse(user: User, res: Response) {
+		const { accessToken, refreshToken } = await this.generateTokens(user.id)
 
-		const passwordValid = await verify(user.password, password)
-		if (!passwordValid) throw new UnauthorizedException("Invalid email or password")
-
-		return this.buildResponse(user)
-	}
-
-	private buildResponse(user: User) {
-		const token = this.jwt.sign({
-			id: user.id,
-			email: user.email
+		res.cookie("refreshToken", refreshToken, {
+			httpOnly: true,
+			secure: true,
+			sameSite: "strict"
 		})
 
 		return {
@@ -57,7 +83,7 @@ export class AuthService {
 				lastName: user.lastName,
 				region: user.region
 			},
-			token
+			accessToken
 		}
 	}
 }

@@ -9,7 +9,7 @@ export class RegisterDto {
 	@IsDefined()
 	@IsString()
 	@IsNotEmpty()
-	lastName?: string
+	lastName: string
 
 	@IsDefined()
 	@IsString()

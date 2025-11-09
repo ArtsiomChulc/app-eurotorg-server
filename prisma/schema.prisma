@@ -40,7 +40,7 @@ model User {
 
   region String? @map("region")
 
-  password String @map("hashed_password")
+  hashedPassword String @map("hashed_password")
 
   markets Markets[]
 

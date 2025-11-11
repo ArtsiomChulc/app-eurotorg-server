@@ -49,3 +49,22 @@ model User {
 
   @@map("users")
 }
+
+model Handbook {
+  id Int @id @default(autoincrement())
+
+  region String
+
+  marketNumber String @unique @map("market_number")
+
+  marketAddress String @map("market_address")
+
+  responsible String
+
+  district String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("handbook")
+}

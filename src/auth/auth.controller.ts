@@ -25,14 +25,20 @@ export class AuthController {
 
 	@UseGuards(AuthGuard("local"))
 	@Post("login")
-	async login(@CurrentUser("id", ParseIntPipe) userId: number) {
-		return this.authService.generateTokens(userId)
+	async login(
+		@CurrentUser("id", ParseIntPipe) userId: number,
+		@Res({ passthrough: true }) res: Response
+	) {
+		return this.authService.generateTokens(userId, res)
 	}
 
 	@UseGuards(AuthGuard("jwt-refresh"))
 	@Post("refresh")
-	async refresh(@CurrentUser("id", ParseIntPipe) userId: number) {
-		return this.authService.generateTokens(userId)
+	async refresh(
+		@CurrentUser("id", ParseIntPipe) userId: number,
+		@Res({ passthrough: true }) res: Response
+	) {
+		return this.authService.generateTokens(userId, res)
 	}
 
 	@Post("logout")

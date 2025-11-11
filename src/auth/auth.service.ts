@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, Res } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { JwtService } from "@nestjs/jwt"
 import { User } from "@prisma/client"
@@ -42,7 +42,7 @@ export class AuthService {
 		return user
 	}
 
-	async generateTokens(userId: number) {
+	async generateTokens(userId: number, @Res({ passthrough: true }) res: Response) {
 		const accessToken = await this.jwt.signAsync(
 			{
 				userId
@@ -63,17 +63,18 @@ export class AuthService {
 			}
 		)
 
-		return { accessToken, refreshToken }
+		res.cookie("refreshToken", refreshToken, {
+			httpOnly: true,
+			secure: true
+		})
+
+		const user = await this.userService.getOne({ id: userId })
+
+		return { user, accessToken }
 	}
 
 	private async buildResponse(user: User, res: Response) {
-		const { accessToken, refreshToken } = await this.generateTokens(user.id)
-
-		res.cookie("refreshToken", refreshToken, {
-			httpOnly: true,
-			secure: true,
-			sameSite: "strict"
-		})
+		const { accessToken } = await this.generateTokens(user.id, res)
 
 		return {
 			user: {

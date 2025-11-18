@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id             Int     @id @default(autoincrement())
-  email          String  @unique
-  name           String? @map("name")
-  lastName       String? @map("last_name")
-  region         String? @map("region")
-  hashedPassword String  @map("hashed_password")
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  name           String?  @map("name")
+  lastName       String?  @map("last_name")
+  region         String?  @map("region")
+  role           UserRole @default(USER)
+  hashedPassword String   @map("hashed_password")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -128,4 +129,10 @@ enum SewerageType {
 enum WaterSupply {
   YES
   NO
+}
+
+enum UserRole {
+  USER
+  ENGINEER
+  ADMIN
 }

@@ -82,7 +82,8 @@ export class AuthService {
 				email: user.email,
 				name: user.name,
 				lastName: user.lastName,
-				region: user.region
+				region: user.region,
+				role: user.role
 			},
 			accessToken
 		}

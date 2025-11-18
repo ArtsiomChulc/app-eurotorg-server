@@ -19,12 +19,19 @@ export class UsersService {
 		})
 		if (existingUser)
 			throw new ConflictException("Пользователь с таким email уже существует")
+		const engineer = await this.prisma.engineer.findUnique({
+			where: { email }
+		})
+
+		// Если найден инженер, присваиваем роль ENGINEER
+		const role = engineer ? "ENGINEER" : "USER"
 		const user = await this.prisma.user.create({
 			data: {
 				email,
 				region,
 				lastName,
 				name,
+				role,
 				hashedPassword
 			}
 		})

@@ -6,6 +6,12 @@ import { Strategy } from "passport-jwt"
 import { UsersService } from "../../users/users.service"
 import { JwtPayload } from "../../utils/types/jwt-payload"
 
+interface RequestWithCookies extends Request {
+	cookies: {
+		refreshToken?: string
+	}
+}
+
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh") {
 	constructor(
@@ -13,8 +19,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh"
 		private readonly usersService: UsersService
 	) {
 		super({
-			jwtFromRequest: (req: Request) => {
-				return req.cookies["refreshToken"]
+			jwtFromRequest: (req: RequestWithCookies) => {
+				return req.cookies["refreshToken"] ?? null
 			},
 			ignoreExpiration: false,
 			secretOrKey: configService.getOrThrow("JWT_REFRESH_SECRET")

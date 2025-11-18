@@ -41,4 +41,6 @@ async function bootstrap() {
 	console.log(`Server started on port ${process.env.PORT}`)
 }
 
-bootstrap()
+bootstrap().catch(err => {
+	console.error(err)
+})

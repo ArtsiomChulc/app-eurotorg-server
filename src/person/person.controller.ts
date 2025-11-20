@@ -1,6 +1,16 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common"
+import {
+	Body,
+	Controller,
+	Get,
+	Post,
+	UseGuards,
+	ParseIntPipe,
+	Param,
+	Patch
+} from "@nestjs/common"
 import { JwtAccessGuard } from "../auth/guards/jwt-access.guard"
 import { CreatePersonDto } from "./dto/create-person.dto"
+import { UpdatePersonDto } from "./dto/update-person.dto"
 import { PersonService } from "./person.service"
 
 @UseGuards(JwtAccessGuard)
@@ -26,5 +36,15 @@ export class PersonController {
 	@Get("engineers")
 	findEngineers() {
 		return this.personService.findEngineers()
+	}
+
+	@Patch("director/:id")
+	updateDirector(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdatePersonDto) {
+		return this.personService.updateDirector(id, dto)
+	}
+
+	@Patch("engineer/:id")
+	updateEngineer(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdatePersonDto) {
+		return this.personService.updateEngineer(id, dto)
 	}
 }
